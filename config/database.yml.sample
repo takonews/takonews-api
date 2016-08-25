@@ -1,0 +1,8 @@
+development:
+  adapter: mysql
+  name: takonews_development
+  user: root
+production:
+  adapter: mysql
+  name: takonews_production
+  user: root

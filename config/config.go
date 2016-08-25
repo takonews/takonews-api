@@ -1,0 +1,87 @@
+package config
+
+import (
+	"io/ioutil"
+	"os"
+
+	"gopkg.in/yaml.v2"
+)
+
+var Config = struct {
+	// debug or release
+	Mode string
+	DB   struct {
+		Name     string
+		Adapter  string
+		User     string
+		Password string
+	}
+	PORT string
+}{}
+
+func init() {
+	// debug or release
+	Config.Mode = os.Getenv("GIN_MODE")
+	if Config.Mode != "debug" && Config.Mode != "release" {
+		Config.Mode = "debug"
+	}
+
+	// DB
+	dbConfigPath := os.ExpandEnv("${GOPATH}/src/github.com/takonews/takonews-api/config/database.yml")
+	buf, err := ioutil.ReadFile(dbConfigPath)
+	if err != nil {
+		panic(err)
+	}
+	m := make(map[interface{}]interface{})
+	err = yaml.Unmarshal(buf, &m)
+	if err != nil {
+		panic(err)
+	}
+
+	if Config.Mode == "debug" {
+		development := m["development"].(map[interface{}]interface{})
+		if val, ok := development["name"]; ok {
+			Config.DB.Name = val.(string)
+		} else {
+			Config.DB.Name = ""
+		}
+		if val, ok := development["adapter"]; ok {
+			Config.DB.Adapter = val.(string)
+		} else {
+			Config.DB.Adapter = ""
+		}
+		Config.DB.User = development["user"].(string)
+		if val, ok := development["user"]; ok {
+			Config.DB.User = val.(string)
+		} else {
+			Config.DB.User = ""
+		}
+		if val, ok := development["password"]; ok {
+			Config.DB.Password = val.(string)
+		} else {
+			Config.DB.Password = ""
+		}
+	} else {
+		production := m["production"].(map[interface{}]interface{})
+		if val, ok := production["name"]; ok {
+			Config.DB.Name = val.(string)
+		} else {
+			Config.DB.Name = ""
+		}
+		if val, ok := production["adapter"]; ok {
+			Config.DB.Adapter = val.(string)
+		} else {
+			Config.DB.Adapter = ""
+		}
+		if val, ok := production["user"]; ok {
+			Config.DB.User = val.(string)
+		} else {
+			Config.DB.User = ""
+		}
+		if val, ok := production["password"]; ok {
+			Config.DB.Password = val.(string)
+		} else {
+			Config.DB.Password = ""
+		}
+	}
+}
