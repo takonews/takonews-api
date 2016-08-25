@@ -25,9 +25,12 @@ func fieldSet(fields ...string) map[string]bool {
 	for _, s := range fields {
 		set[s] = true
 	}
+
 	return set
 }
 
+// SelectFields select column
+// return value is not Article but map!!!
 func (s *Article) SelectFields(fields ...string) map[string]interface{} {
 	fs := fieldSet(fields...)
 	rt, rv := reflect.TypeOf(*s), reflect.ValueOf(*s)
@@ -39,5 +42,6 @@ func (s *Article) SelectFields(fields ...string) map[string]interface{} {
 			out[jsonKey] = rv.Field(i).Interface()
 		}
 	}
+
 	return out
 }
