@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -15,20 +16,47 @@ import (
 // Available Query Parameters
 // * sort
 // * fields
+// * filter
 func ArticleIndex(c *gin.Context) {
 	// parameters
-	articles := []models.Article{}
-	sort := c.Query("sort")
-	fields := c.Query("fields")
+	var sort []string
+	var fields []string
+	var startDate time.Time
+	var endDate time.Time
+
+	sort = strings.Split(c.Query("sort"), ",")
+	fields = strings.Split(c.Query("fields"), ",")
+	loc, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		panic(err)
+	}
+	now := time.Now().In(loc)
+	if c.Query("start-date") == "" { // default: today:00:00:00
+		startDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	} else {
+		startDate, err = time.Parse("2006-01-02", c.Query("start-date"))
+		startDate = startDate.Add(-9 * time.Hour).In(loc)
+	}
+	if c.Query("end-date") == "" { // default: tomorrow:00:00:00
+		endDate = time.Date(now.Year(), now.Month(), now.Day(), 24, 0, 0, 0, loc)
+	} else {
+		endDate, err = time.Parse("2006-01-02", c.Query("end-date"))
+		endDate = endDate.Add((-9 + 24) * time.Hour).In(loc)
+	}
 
 	/*
 		DB processing
 	*/
-	// Sort
-	// .Order("column [asc/desc]")
+	articles := []models.Article{}
 	sql := db.DB
-	sorts := strings.Split(sort, ",")
-	sql, err := OrderArticles(sql, sorts...)
+
+	// filter
+	sql = sql.Where("published_at >= ?", startDate)
+	sql = sql.Where("published_at <= ?", endDate)
+
+	// sort
+	sql, err = OrderArticles(sql, sort...)
+
 	if err != nil {
 		c.Status(http.StatusBadRequest)
 		errorResp := ErrorResponse{Message: "wrong sort param"}
@@ -37,16 +65,16 @@ func ArticleIndex(c *gin.Context) {
 		if err != nil {
 			panic(err)
 		}
-
 		return
 	}
+
+	// find
 	sql.Find(&articles)
 
 	/*
 		select output field
 	*/
-	fs := strings.Split(fields, ",")
-	results := SelectArticles(&articles, fs...)
+	results := SelectArticles(&articles, fields...)
 
 	// set header
 	c.Writer.Header().Set("Link", "<page=3>; rel=\"next\", <page=1>; rel=\"prev\", <page=5>; rel=\"last\"")
