@@ -73,7 +73,7 @@ func ArticleIndex(c *gin.Context) {
 
 	// find
 	sql.Find(&articles)
-	fmt.Println(articles)
+
 	/*
 		select output field
 	*/
