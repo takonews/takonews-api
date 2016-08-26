@@ -16,6 +16,9 @@ var Config = struct {
 		User     string
 		Password string
 	}
+	Secret struct {
+		Users []map[string]string
+	}
 	PORT string
 }{}
 
@@ -25,10 +28,19 @@ func init() {
 	if Config.Mode != "debug" && Config.Mode != "release" {
 		Config.Mode = "debug"
 	}
-
+	// basicauth
+	secretConfigPath := os.ExpandEnv("${GOPATH}/src/github.com/takonews/takonews-api/config/secrets.yml")
+	buf, err := ioutil.ReadFile(secretConfigPath)
+	if err != nil {
+		panic(err)
+	}
+	err = yaml.Unmarshal(buf, &Config.Secret)
+	if err != nil {
+		panic(err)
+	}
 	// DB
 	dbConfigPath := os.ExpandEnv("${GOPATH}/src/github.com/takonews/takonews-api/config/database.yml")
-	buf, err := ioutil.ReadFile(dbConfigPath)
+	buf, err = ioutil.ReadFile(dbConfigPath)
 	if err != nil {
 		panic(err)
 	}
