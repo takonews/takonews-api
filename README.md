@@ -7,9 +7,20 @@ takonews-api
 ## Development
 
 ```
-go get -u github.com/takonews/takonews-api
+## SSL setting
+cd $HOME
+openssl genrsa -out serverpriv.key 2048
+openssl req -new -x509 -key serverpriv.key -out serverpub.key -days 365
+mv serverpub.key .ssh/
+mv serverpriv.key .ssh/
+
+## database setting
 mysql -u root -p
 > create database if not exists takonews_development;
+
+## get repository
+go get -u github.com/takonews/takonews-api
+cd $GOPATH/src/github.com/takonews/takonews-api
 mv config/database.yml.sample config/database.yml
 godep restore
 echo "export GIN_MODE=debug" > ~/.bashrc

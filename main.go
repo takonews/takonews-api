@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/takonews/takonews-api/config/routes"
 	_ "github.com/takonews/takonews-api/db/migrations"
@@ -13,7 +14,7 @@ func main() {
 	mux.Handle("/", routes.Router())
 
 	// run server
-	if err := http.ListenAndServe(":8000", mux); err != nil {
+	if err := http.ListenAndServeTLS(":8000", os.Getenv("HOME")+"/.ssh/serverpub.key", os.Getenv("HOME")+"/.ssh/serverpriv.key", mux); err != nil {
 		panic(err)
 	}
 }
