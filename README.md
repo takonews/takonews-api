@@ -22,6 +22,7 @@ mysql -u root -p
 go get -u github.com/takonews/takonews-api
 cd $GOPATH/src/github.com/takonews/takonews-api
 mv config/database.yml.sample config/database.yml
+mv config/secrets.yml.sample config/secrets.yml
 godep restore
 echo "export GIN_MODE=debug" > ~/.bashrc
 go run main.go

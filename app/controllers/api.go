@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -72,7 +73,7 @@ func ArticleIndex(c *gin.Context) {
 
 	// find
 	sql.Find(&articles)
-
+	fmt.Println(articles)
 	/*
 		select output field
 	*/

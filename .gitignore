@@ -28,3 +28,4 @@ _testmain.go
 
 # remove user specific setting files
 /config/database.yml
+/config/secrets.yml
