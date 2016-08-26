@@ -53,8 +53,7 @@ func ArticleIndex(c *gin.Context) {
 	sql := db.DB
 
 	// filter
-	sql = sql.Where("published_at >= ?", startDate)
-	sql = sql.Where("published_at <= ?", endDate)
+	sql = sql.Where("published_at BETWEEN ? AND ?", startDate, endDate)
 	sql = sql.Where("title LIKE ?", "%"+title+"%")
 
 	// sort
