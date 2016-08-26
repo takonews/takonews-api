@@ -23,6 +23,7 @@ func ArticleIndex(c *gin.Context) {
 	var fields []string
 	var startDate time.Time
 	var endDate time.Time
+	var title string
 
 	sort = strings.Split(c.Query("sort"), ",")
 	fields = strings.Split(c.Query("fields"), ",")
@@ -43,6 +44,7 @@ func ArticleIndex(c *gin.Context) {
 		endDate, err = time.Parse("2006-01-02", c.Query("end-date"))
 		endDate = endDate.Add((-9 + 24) * time.Hour).In(loc)
 	}
+	title = c.Query("title")
 
 	/*
 		DB processing
@@ -53,6 +55,7 @@ func ArticleIndex(c *gin.Context) {
 	// filter
 	sql = sql.Where("published_at >= ?", startDate)
 	sql = sql.Where("published_at <= ?", endDate)
+	sql = sql.Where("title LIKE ?", "%"+title+"%")
 
 	// sort
 	sql, err = OrderArticles(sql, sort...)
