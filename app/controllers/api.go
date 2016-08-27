@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +27,8 @@ func ArticleIndex(c *gin.Context) {
 	var startDate time.Time
 	var endDate time.Time
 	var title string
+	var offset int
+	var limit int
 
 	sort = strings.Split(c.Query("sort"), ",")
 	fields = strings.Split(c.Query("fields"), ",")
@@ -45,6 +50,8 @@ func ArticleIndex(c *gin.Context) {
 		endDate = endDate.Add((-9 + 24) * time.Hour).In(loc)
 	}
 	title = c.Query("title")
+	offset, _ = strconv.Atoi(c.DefaultQuery("page[offset]", "0"))
+	limit, _ = strconv.Atoi(c.DefaultQuery("page[limit]", "20"))
 
 	/*
 		DB processing
@@ -70,6 +77,12 @@ func ArticleIndex(c *gin.Context) {
 		return
 	}
 
+	// limit
+	sql = sql.Limit(limit)
+
+	// offset
+	sql = sql.Offset(offset)
+
 	// find
 	sql.Find(&articles)
 
@@ -78,8 +91,59 @@ func ArticleIndex(c *gin.Context) {
 	*/
 	results := SelectArticles(&articles, fields...)
 
-	// set header
-	c.Writer.Header().Set("Link", "<page=3>; rel=\"next\", <page=1>; rel=\"prev\", <page=5>; rel=\"last\"")
+	/*
+		set header
+	*/
+	// X-Total-Count
+	count := len(articles)
+	c.Writer.Header().Set("X-Total-Count", strconv.Itoa(count))
+
+	// Link
+	var noLimitArticles []models.Article
+	sql.Limit(-1).Offset(-1).Find(&noLimitArticles)
+	noLimitCount := len(noLimitArticles)
+	var links []string
+	path := c.Request.URL.Path
+	m, _ := url.ParseQuery(c.Request.URL.RawQuery)
+	delete(m, "page[\"offset\"]")
+	fmt.Println(m)
+	params := url.Values{}
+	for k, v := range m {
+		params.Add(k, v[0])
+	}
+	fmt.Println(params)
+	firstParams := params
+	firstParams.Add("page[\"offset\"]", "0")
+	linkFirstURL := path + "?" + firstParams.Encode()
+	lastParams := params
+	if noLimitCount-limit > 0 {
+		lastParams.Add("page[\"offset\"]", strconv.Itoa(noLimitCount-limit))
+	} else {
+		lastParams = firstParams
+	}
+	linkLastParams := path + "?" + lastParams.Encode()
+	prevParams := params
+	if offset-limit >= 0 {
+		prevParams.Add("page[\"offset\"]", strconv.Itoa(offset-limit))
+	} else {
+		prevParams.Add("page[\"offset\"]", strconv.Itoa(offset))
+	}
+	linkPrevParams := path + "?" + prevParams.Encode()
+	nextParams := params
+	if noLimitCount >= (offset + limit) {
+		nextParams.Add("page[\"offset\"]", strconv.Itoa(offset+limit))
+	} else {
+		nextParams.Add("page[\"offset\"]", strconv.Itoa(offset))
+	}
+	linkNextParams := path + "?" + nextParams.Encode()
+	links = append(links, "<"+linkFirstURL+">; rel=\"first\"")
+	links = append(links, "<"+linkLastParams+">; rel=\"last\"")
+	links = append(links, "<"+linkPrevParams+">; rel=\"prev\"")
+	links = append(links, "<"+linkNextParams+">; rel=\"next\"")
+	c.Writer.Header().Set("Link", strings.Join(links, ", "))
+
+	// Content-Type
+	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.Status(http.StatusOK)
 
 	// write response
