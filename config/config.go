@@ -44,14 +44,14 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	m := make(map[interface{}]interface{})
+	var m interface{}
 	err = yaml.Unmarshal(buf, &m)
 	if err != nil {
 		panic(err)
 	}
 
 	if Config.Mode == "debug" {
-		development := m["development"].(map[interface{}]interface{})
+		development := m.(map[interface{}]interface{})["development"].(map[interface{}]interface{})
 		if val, ok := development["name"]; ok {
 			Config.DB.Name = val.(string)
 		} else {
@@ -74,7 +74,7 @@ func init() {
 			Config.DB.Password = ""
 		}
 	} else {
-		production := m["production"].(map[interface{}]interface{})
+		production := m.(map[interface{}]interface{})["production"].(map[interface{}]interface{})
 		if val, ok := production["name"]; ok {
 			Config.DB.Name = val.(string)
 		} else {

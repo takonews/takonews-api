@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -106,12 +105,10 @@ func ArticleIndex(c *gin.Context) {
 	path := c.Request.URL.Path
 	m, _ := url.ParseQuery(c.Request.URL.RawQuery)
 	delete(m, "page[\"offset\"]")
-	fmt.Println(m)
 	params := url.Values{}
 	for k, v := range m {
 		params.Add(k, v[0])
 	}
-	fmt.Println(params)
 	firstParams := params
 	firstParams.Add("page[\"offset\"]", "0")
 	linkFirstURL := path + "?" + firstParams.Encode()
