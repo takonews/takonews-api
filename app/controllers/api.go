@@ -22,7 +22,7 @@ import (
 func ArticleIndex(c *gin.Context) {
 	// parameters
 	var sort []string
-	var fields []string
+	var fields string
 	var startDate time.Time
 	var endDate time.Time
 	var title string
@@ -30,7 +30,7 @@ func ArticleIndex(c *gin.Context) {
 	var limit int
 
 	sort = strings.Split(c.Query("sort"), ",")
-	fields = strings.Split(c.Query("fields"), ",")
+	fields = c.DefaultQuery("fields", "id,title,news_site_id,published_at,url")
 	loc, err := time.LoadLocation("Asia/Tokyo")
 	if err != nil {
 		panic(err)
@@ -55,8 +55,7 @@ func ArticleIndex(c *gin.Context) {
 	/*
 		DB processing
 	*/
-	articles := []models.Article{}
-	sql := db.DB
+	sql := db.DB.Model(models.Article{})
 
 	// filter
 	sql = sql.Where("published_at BETWEEN ? AND ?", startDate, endDate)
@@ -82,19 +81,47 @@ func ArticleIndex(c *gin.Context) {
 	// offset
 	sql = sql.Offset(offset)
 
-	// find
-	sql.Find(&articles)
+	// select
+	sql = sql.Select(fields)
 
-	/*
-		select output field
-	*/
-	results := SelectArticles(&articles, fields...)
+	// find
+	rows, err := sql.Rows()
+
+	// select output fields
+	var results []map[string]interface{}
+	cols, err := rows.Columns()
+
+	for rows.Next() {
+		var row = make([]interface{}, len(cols))
+		var rowp = make([]interface{}, len(cols))
+		for i := 0; i < len(cols); i++ {
+			rowp[i] = &row[i]
+		}
+
+		rows.Scan(rowp...)
+
+		rowMap := make(map[string]interface{})
+		for i, col := range cols {
+			switch row[i].(type) {
+			case []byte:
+				row[i] = string(row[i].([]byte))
+				num, err := strconv.Atoi(row[i].(string))
+				if err == nil {
+					row[i] = num
+				}
+			}
+			rowMap[col] = row[i]
+		}
+
+		results = append(results, rowMap)
+	}
 
 	/*
 		set header
 	*/
 	// X-Total-Count
-	count := len(articles)
+	var count int
+	sql.Limit(-1).Offset(-1).Count(&count)
 	c.Writer.Header().Set("X-Total-Count", strconv.Itoa(count))
 
 	// Link
@@ -107,30 +134,30 @@ func ArticleIndex(c *gin.Context) {
 	delete(m, "page[\"offset\"]")
 	params := url.Values{}
 	for k, v := range m {
-		params.Add(k, v[0])
+		params.Set(k, v[0])
 	}
 	firstParams := params
-	firstParams.Add("page[\"offset\"]", "0")
+	firstParams.Set("page[\"offset\"]", "0")
 	linkFirstURL := path + "?" + firstParams.Encode()
 	lastParams := params
 	if noLimitCount-limit > 0 {
-		lastParams.Add("page[\"offset\"]", strconv.Itoa(noLimitCount-limit))
+		lastParams.Set("page[\"offset\"]", strconv.Itoa(noLimitCount-limit))
 	} else {
 		lastParams = firstParams
 	}
 	linkLastParams := path + "?" + lastParams.Encode()
 	prevParams := params
 	if offset-limit >= 0 {
-		prevParams.Add("page[\"offset\"]", strconv.Itoa(offset-limit))
+		prevParams.Set("page[\"offset\"]", strconv.Itoa(offset-limit))
 	} else {
-		prevParams.Add("page[\"offset\"]", strconv.Itoa(offset))
+		prevParams.Set("page[\"offset\"]", strconv.Itoa(offset))
 	}
 	linkPrevParams := path + "?" + prevParams.Encode()
 	nextParams := params
 	if noLimitCount >= (offset + limit) {
-		nextParams.Add("page[\"offset\"]", strconv.Itoa(offset+limit))
+		nextParams.Set("page[\"offset\"]", strconv.Itoa(offset+limit))
 	} else {
-		nextParams.Add("page[\"offset\"]", strconv.Itoa(offset))
+		nextParams.Set("page[\"offset\"]", strconv.Itoa(offset))
 	}
 	linkNextParams := path + "?" + nextParams.Encode()
 	links = append(links, "<"+linkFirstURL+">; rel=\"first\"")
@@ -177,25 +204,6 @@ func ArticleShow(c *gin.Context) {
 			panic(err)
 		}
 	}
-}
-
-// SelectArticles extends gorm.DB.Select function
-func SelectArticles(articles *[]models.Article, fields ...string) (results []map[string]interface{}) {
-	for _, v := range *articles {
-		if len(fields) > 1 || (len(fields) == 1 && fields[0] != "") {
-			results = append(results, (&v).SelectFields(fields...))
-		} else {
-			results = append(results, (&v).SelectFields(
-				"id",
-				"title",
-				"news_site_id",
-				"published_at",
-				"url",
-			))
-		}
-	}
-
-	return results
 }
 
 // OrderArticles extends gorm.DB.Order function
