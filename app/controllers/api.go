@@ -20,7 +20,9 @@ import (
 // * fields
 // * filter
 func ArticleIndex(c *gin.Context) {
-	// parameters
+	//
+	// query parameters
+	//
 	var sort []string
 	var fields string
 	var startDate time.Time
@@ -52,9 +54,9 @@ func ArticleIndex(c *gin.Context) {
 	offset, _ = strconv.Atoi(c.DefaultQuery("page[offset]", "0"))
 	limit, _ = strconv.Atoi(c.DefaultQuery("page[limit]", "20"))
 
-	/*
-		DB processing
-	*/
+	//
+	// building SQL query
+	//
 	sql := db.DB.Model(models.Article{})
 
 	// filter
@@ -116,9 +118,9 @@ func ArticleIndex(c *gin.Context) {
 		results = append(results, rowMap)
 	}
 
-	/*
-		set header
-	*/
+	//
+	// set header
+	//
 	// X-Total-Count
 	var count int
 	sql.Limit(-1).Offset(-1).Count(&count)
@@ -207,11 +209,11 @@ func ArticleShow(c *gin.Context) {
 }
 
 // OrderArticles extends gorm.DB.Order function
-func OrderArticles(db *gorm.DB, sorts ...string) (*gorm.DB, error) {
+func OrderArticles(db *gorm.DB, sort ...string) (*gorm.DB, error) {
 	var dbRet = db
 	var err error
 
-	for i, v := range sorts {
+	for i, v := range sort {
 		if v == "" {
 			if i == 0 { // /articles /articles?sort= /articles?sort=,hoge
 				dbRet = dbRet.Order("published_at desc")
