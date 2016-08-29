@@ -9,10 +9,10 @@ type Article struct {
 	UpdatedAt   time.Time
 	DeletedAt   *time.Time
 	NewsSite    NewsSite `gorm:"ForeignKey:NewsSiteID;AssociationForeignKey:ID"`
-	NewsSiteID  uint     //`gorm:"unique_index"` // Article belongs to NewsSite
+	NewsSiteID  uint     // Article belongs to NewsSite
 	URL         string
 	Title       string
 	Description string
-	Query       string
+	FullText    string `gorm:"type:text"`
 	PublishedAt time.Time
 }
