@@ -6,4 +6,5 @@ import "github.com/jinzhu/gorm"
 type NewsSite struct {
 	gorm.Model // include standard field
 	Name       string
+	URL        string
 }
